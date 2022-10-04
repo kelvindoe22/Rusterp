@@ -2,9 +2,7 @@ mod utils;
 
 use std::io;
 use std::io::Write;
-use utils::{interpreter::Interpreter};
-
-
+use utils::interpreter::Interpreter;
 
 fn main() {
     let mut expr = String::new();
@@ -13,11 +11,11 @@ fn main() {
         io::stdout().flush().unwrap();
         std::io::stdin().read_line(&mut expr).unwrap();
         let words = expr.trim().as_bytes();
-        if words == "exit".as_bytes(){
+        if words == "exit".as_bytes() {
             break;
         }
         let mut interp = Interpreter::new(words).unwrap();
-        println!("{}",interp.expr().unwrap());
+        println!("{}", interp.expr().unwrap());
         expr.clear()
     }
 }
