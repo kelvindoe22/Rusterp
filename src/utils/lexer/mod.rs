@@ -6,7 +6,7 @@ pub enum Token {
     Integer(f64),
     Operator(Operators),
     LPAREN,
-    RPAREN
+    RPAREN,
 }
 
 #[derive(Debug, PartialEq)]
@@ -90,7 +90,7 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 Ok(Token::RPAREN)
             }
-            
+
             Some(char) => {
                 if char.is_numeric() {
                     Ok(self.integer())
