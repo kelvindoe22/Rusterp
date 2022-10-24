@@ -3,6 +3,7 @@ use super::lexer::{Lexer, Operators, Token};
 pub struct Interpreter<'a> {
     lexer: Lexer<'a>,
     current_token: Token,
+    brackets_open: usize
 }
 
 impl<'a> Interpreter<'a> {
@@ -12,33 +13,60 @@ impl<'a> Interpreter<'a> {
         Ok(Self {
             lexer,
             current_token,
+            brackets_open: 0
         })
-    }
+    } 
 
     fn get_next_token(&mut self) -> Result<Token, String> {
         self.lexer.get_next_token()
     }
 
     fn integer(&mut self) -> Result<f64, String> {
-        if let Token::Integer(num) = self.current_token {
-            let res = Ok(num);
-            self.current_token = match self.get_next_token() {
-                Ok(token) => token,
-                Err(_) => return Err(String::from("Can't process next token")),
-            };
-            res
-        } else {
-            Err(format!("Expected INTEGER found {:?}", self.current_token))
+        match self.current_token {
+            Token::Integer(num) => {
+                let res = Ok(num);
+                self.current_token = self.get_next_token()?;
+                return res
+            }
+            Token::Operator(ref o) => {
+                match o {
+                    Operators::MINUS => {
+                        self.current_token = self.get_next_token()?;
+                        if let Token::Integer(num) = self.current_token {
+                            self.current_token = self.get_next_token()?;
+                            return Ok(-num)
+                        }
+                    }
+                    Operators::PLUS => {
+                        self.current_token = self.get_next_token()?;
+                        if let Token::Integer(num) = self.current_token {
+                            self.current_token = self.get_next_token()?;
+                            return Ok(num)
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Token::LPAREN => {
+                self.eat(Token::LPAREN)?;
+                dbg!("brackets open");
+                self.brackets_open += 1;
+                let result = self.expr()?;
+                self.eat(Token::RPAREN)?;
+                self.brackets_open -= 1;
+                dbg!("closed");
+                return Ok(result);
+            }
+            _ => {
+            }
         }
+        return Err(format!("Expected INTEGER found {:?}", self.current_token))
     }
 
     fn operator(&mut self, operator: Operators) -> Result<(), String> {
         if let Token::Operator(ref o) = self.current_token {
             if o == &operator {
-                self.current_token = match self.get_next_token() {
-                    Ok(token) => token,
-                    Err(_) => return Err(String::from("Can't process next token")),
-                };
+                self.current_token = self.get_next_token()?;
                 Ok(())
             } else {
                 Err(format!("Expected Operator {:?} found {:?}", operator, o))
@@ -52,8 +80,22 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn eat(&mut self, token: Token) -> Result<(), String> {
+        if self.current_token == token{
+            self.current_token = self.get_next_token()?;
+            return Ok(())
+        }else {
+            return Err(
+                format!(
+                    "Expected {:?} found {:?}",token,self.current_token
+                )
+            )
+        }
+    }
+
     fn term(&mut self) -> Result<f64, String> {
         let mut result = self.integer()?;
+        
         while let Token::Operator(ref op) = self.current_token {
             match *op {
                 Operators::MULTIPLICATION => {
@@ -72,6 +114,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn expr(&mut self) -> Result<f64, String> {
         let mut result = self.term()?;
+
         while let Token::Operator(ref op) = self.current_token {
             use Operators::*;
             match *op {
@@ -84,6 +127,11 @@ impl<'a> Interpreter<'a> {
                     result -= self.term()?;
                 }
                 _ => break,
+            }
+        }
+        if let Token::RPAREN = self.current_token {
+            if self.brackets_open == 0{
+                return Err(format!("Unexpected token `)` found"))
             }
         }
         Ok(result)

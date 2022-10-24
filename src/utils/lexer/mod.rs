@@ -5,6 +5,8 @@ pub enum Token {
     EOF,
     Integer(f64),
     Operator(Operators),
+    LPAREN,
+    RPAREN
 }
 
 #[derive(Debug, PartialEq)]
@@ -80,6 +82,15 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 Ok(Token::Operator(Operators::DIVISION))
             }
+            Some('(') => {
+                self.advance();
+                Ok(Token::LPAREN)
+            }
+            Some(')') => {
+                self.advance();
+                Ok(Token::RPAREN)
+            }
+            
             Some(char) => {
                 if char.is_numeric() {
                     Ok(self.integer())
