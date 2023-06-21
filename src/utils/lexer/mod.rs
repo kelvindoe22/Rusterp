@@ -1,4 +1,5 @@
 use std::slice::Iter;
+use std::ops::{Add, Sub, Mul, Div};
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -7,6 +8,82 @@ pub enum Token {
     Operator(Operators),
     LPAREN,
     RPAREN,
+}
+
+impl Add for Token {
+    type Output = f64;
+    fn add(self, rhs: Self) -> Self::Output {
+        use Token::*;
+        match self{
+            Integer(left) => {
+                match rhs {
+                    Integer(right) => left + right,
+                    _ => panic!("Cannot add {:?} to {:?}.", left, rhs)
+                }
+            }
+            _ => {
+                panic!("Cannot add {:?} to {:?}", self, rhs);
+            }
+
+        }
+    }
+}
+
+impl Sub for Token {
+    type Output = f64;
+    fn sub(self, rhs: Self) -> Self::Output {
+        use Token::*;
+        match self{
+            Integer(left) => {
+                match rhs {
+                    Integer(right) => left - right,
+                    _ => panic!("Cannot subtract {:?} to {:?}.", left, rhs)
+                }
+            }
+            _ => {
+                panic!("Cannot subtract {:?} to {:?}", self, rhs);
+            }
+
+        }
+    }
+}
+
+impl Mul for Token {
+    type Output = f64;
+    fn mul(self, rhs: Self) -> Self::Output {
+        use Token::*;
+        match self{
+            Integer(left) => {
+                match rhs {
+                    Integer(right) => left * right,
+                    _ => panic!("Cannot multiply {:?} by {:?}.", left, rhs)
+                }
+            }
+            _ => {
+                panic!("Cannot multiply {:?} by {:?}", self, rhs);
+            }
+
+        }
+    }
+}
+
+impl Div for Token {
+    type Output = f64;
+    fn div(self, rhs: Self) -> Self::Output {
+        use Token::*;
+        match self{
+            Integer(left) => {
+                match rhs {
+                    Integer(right) => left / right,
+                    _ => panic!("Cannot divide {:?} by {:?}.", left, rhs)
+                }
+            }
+            _ => {
+                panic!("Cannot divide {:?} by {:?}", self, rhs);
+            }
+
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
