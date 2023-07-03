@@ -3,9 +3,8 @@ use std::fmt::Debug;
 
 #[derive(Debug)]
 pub struct AST<T: Debug> {
-    left: Option<Box<AST<T>>>,
     center: T,
-    right: Option<Box<AST<T>>>
+    children: Vec<AST<T>>
 }
 
 
@@ -13,126 +12,68 @@ impl<T> AST<T>
 where T: Debug {
     pub fn new(val: T) -> Self {
         Self {
-            left: None,
             center: val, 
-            right: None
+            children: Vec::with_capacity(0)
         }
     }
 
-    fn new_full(left: T, center: T, right: T ) -> Self {
+    pub fn new_with_children(center: T, mut children: Vec<Self>) -> Self {
+        children.shrink_to_fit();
         Self {
-            left: Some(
-                Box::new(
-                    AST::new(left)
-                )
-            ),
-            center: center, 
-            right : Some(
-                Box::new(
-                    AST::new(right)
-                )
-            )
+            center,
+            children
         }
     }
+
+    pub fn unary(center: T, right: Self) -> Self {
+        let mut children = Vec::with_capacity(1);
+        children.push(right);
+        Self {
+            center: center,
+            children
+        }
+    }
+
+    // fn new_full(left: T, center: T, right: T ) -> Self {
+    //     let mut left = AST::new(left);
+    //     let mut right = AST::new(right);
+    //     let mut children = Vec::with_capacity(2);
+    //     children.push(left);
+    //     children.push(right);
+    //     Self {
+    //         center, 
+    //         children
+    //     }
+    // }
 
     pub fn full_self(left: Self, center: T, right: Self) -> Self {
+        let mut children = Vec::with_capacity(2);
+        children.push(left);
+        children.push(right);
         Self {
-            left: Some(
-                Box::new(
-                    left
-                )
-            ),
             center,
-            right: Some(
-                Box::new(
-                    right
-                )
-            )
+            children
         }
     }
 
-    pub fn left(& self) -> Option<&Box<AST<T>>> {
-        self.left.as_ref()
+    pub fn left(& self) -> Option<&AST<T>> {
+        Some(&self.children[0])
     }
 
-    pub fn right(&self) -> Option<&Box<AST<T>>> {
-        self.right.as_ref()
+    pub fn right(&self) -> Option<&AST<T>> {
+        Some(&self.children[1])
     }
 
-    pub fn left_mut(&mut self) -> &mut Option<Box<AST<T>>> {
-        &mut self.left
-    }
-
-    pub fn right_mut(&mut self) -> &mut Option<Box<AST<T>>> {
-        &mut self.right
+    pub fn children(&self) -> &Vec<AST<T>> {
+        &self.children
     }
     
     pub fn view(&self) -> &T {
         &self.center
     }
     
-    pub fn edit(&mut self) -> &mut T {
-        &mut self.center
-    }
+    // pub fn edit(&mut self) -> &mut T {
+    //     &mut self.center
+    // }
 
-    pub fn preorder_traverse(&self) {
-        println!("{:?}", self.view());
-
-        if self.left.is_some() {
-            AST::preorder_traverse(self.left.as_ref().unwrap())
-        } 
-
-        if self.right.is_some() {
-            AST::preorder_traverse(self.right.as_ref().unwrap())
-        }
-    }
-}
-
-
-
-
-mod tests{
-    use super::AST;
-
-    fn insert(ast: &mut AST<usize>, val: usize){
-        let mut new = ast;
-        
-        loop {
-            if val <= new.center {
-                if new.left().is_some() {
-                    new = new.left_mut().as_mut().unwrap()
-                } else {
-                    *new.left_mut() = Some(
-                        Box::new(
-                            AST::new(
-                                val
-                            )
-                        )
-                    )
-                }
-            }else {
-                if new.right().is_some() {
-                    new = new.right_mut().as_mut().unwrap()
-                } else {
-                    *new.right_mut() = Some(
-                        Box::new(
-                            AST::new(
-                                val
-                            )
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    fn binary_tree() {
-        let mut bt = AST::new(10_usize);
-        let br = [10, 5, 15, 3, 7, 12, 20, 1, 4, 6, 8, 11, 14, 18, 25];
-        for i in br { 
-            insert(&mut bt, i)
-        }
-        bt.preorder_traverse()
-    }
-    
 }

@@ -22,6 +22,11 @@ impl<'a> Parser<'a> {
         self.lexer.get_next_token()
     }
 
+    // fn advance(&mut self) -> Result<(), String> {
+    //     self.current_token = self.get_next_token()?;
+    //     Ok(())
+    // }
+
     fn integer(&mut self) -> Result<AST<Token>, String> {
         match self.current_token {
             Token::Integer(num) => {
@@ -30,20 +35,30 @@ impl<'a> Parser<'a> {
                     Token::Integer(num)  
                 ))
             }
+            Token::IDENTIFIER(_) => {
+                let mut nt = self.get_next_token()?;
+                std::mem::swap(&mut nt, &mut self.current_token);
+                return Ok(
+                    AST::new(nt)
+                );
+            }
             Token::Operator(ref o) => match o {
                 Operators::MINUS => {
                     self.current_token = self.get_next_token()?;
-                    if let Token::Integer(num) = self.current_token {
-                        self.current_token = self.get_next_token()?;
-                        return Ok(AST::new(Token::Integer(-num)))
-                    }
+
+                    return Ok(
+                        AST::unary(
+                            Token::Operator(Operators::MINUS),self.term()?
+                        )
+                    )
+ 
                 }
                 Operators::PLUS => {
                     self.current_token = self.get_next_token()?;
-                    if let Token::Integer(num) = self.current_token {
-                        self.current_token = self.get_next_token()?;
-                        return Ok(AST::new(Token::Integer(num)))
-                    }
+
+                    return Ok(
+                        AST::unary(Token::Operator(Operators::PLUS), self.term()?)
+                    )
                 }
                 _ => {}
             },
@@ -120,14 +135,68 @@ impl<'a> Parser<'a> {
         Ok(result)
     }
 
-    pub fn parse(&mut self) -> Result<AST<Token>, String> {
-        let expr = self.expr()?;
+    fn compound(&mut self) -> Result<AST<Token>, String> {
+        self.eat(Token::BEGIN)?;
+        let nodes = self.statement_nodes()?;
+        let node = AST::new_with_children(Token::BEGIN, nodes);
+        self.eat(Token::END)?;
+        Ok(node)
+    }
+
+    fn statement_nodes(&mut self) -> Result<Vec<AST<Token>>, String> {
+        let mut nodes = Vec::new();
+        nodes.push(self.statement()?);
+        while self.current_token == Token::SEMICOLON{
+            self.eat(Token::SEMICOLON)?;
+            nodes.push(self.statement()?);
+        }
+        Ok(nodes)
+
+    }
+
+    fn statement(&mut self) -> Result<AST<Token>, String> {
+        match self.current_token {
+            Token::BEGIN => Ok(self.compound()?),
+            Token::IDENTIFIER(_) => Ok(self.assignment_statement()?),
+            _  => Ok(AST::new(Token::EMPTY))
+        } 
+    }
+
+    fn identifier(&mut self) -> Result<AST<Token>, String>{
+        let mut next_token = self.get_next_token()?;
+        std::mem::swap(&mut self.current_token, &mut next_token);
+        match next_token {
+            Token::IDENTIFIER(ident) => {
+                Ok(AST::new(Token::IDENTIFIER(ident)))
+            }
+            token => {
+                Err(format!("Expected Identifier found {:?}", token))
+            }
+        }
+    }
+
+    fn assignment_statement(&mut self) -> Result<AST<Token>, String> {
+        let left = self.identifier()?;
+        let center = Token::ASSIGN;
+        self.eat(Token::ASSIGN)?;
+        let right = self.expr()?;
+        let mut children = Vec::with_capacity(2);
+        children.push(left);
+        children.push(right);
+        Ok(AST::new_with_children(center, children))
+    }
+
+
+    pub fn program(&mut self) -> Result<AST<Token>, String> {
+        let res = self.compound()?;
+        self.eat(Token::DOT)?;
         if self.current_token != Token::EOF {
             return Err(
                 format!("Syntax Error, found {:?}. Expected operator", self.current_token)
             )
         }
-        return Ok(expr)
+
+        Ok(res)
     }
 }
 

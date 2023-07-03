@@ -1,0 +1,9 @@
+BEGIN
+    BEGIN
+        number := 2;
+        a := number;
+        _b := 10 * a + 10 * number div 4;
+        c := a - - _b
+    END;
+    x := 11;
+END.
